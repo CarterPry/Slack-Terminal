@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Interface</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <style>
+        #terminal {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal"></div>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+
+    <script>
+        const term = new Terminal();
+        term.open(document.getElementById('terminal'));
+
+        let commandBuffer = ''; //Stores the command
+
+        //Script to hold and pass on the commands
+        term.onData(data => {
+            if (data === '\r') {
+                fetch('/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ command: commandBuffer }) //Stops holding the command here and sends it through
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(output => {
+                    term.write(output + '\r\n');
+                    commandBuffer = ''; 
+                })
+                .catch(err => term.write('Error: ' + err + '\r\n'));
+            } 
+            else if (data === '\u001b[D'){} 
+            else if (data === '\u001b[C'){} 
+            else{
+                commandBuffer += data;
+                term.write(data);
+            }
+        });
+    </script>
+</body>
+</html>
